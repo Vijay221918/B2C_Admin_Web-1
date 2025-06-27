@@ -1,5 +1,5 @@
 // src/redux/ordersSlice.js
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 const initialState = {
@@ -7,39 +7,34 @@ const initialState = {
   loading: false,
   error: null,
   successMessage: '',
-  lastFetched: 0, // Track last fetch time
+  totalCount: 0,
 };
 
-// Fetch Orders with Caching
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
-  async (_, { getState, rejectWithValue }) => {
-    const state = getState();
-    const now = Date.now();
-    
-    // Prevent unnecessary re-fetching (cache for 5 min)
-    if (state.orders.orders.length > 0 && now - state.orders.lastFetched < 300000) {
-      return state.orders.orders;
-    }
-
+  async ({ page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        'https://b2c-49u4.onrender.com/api/v1/order/order',
-        { headers: { 'Cache-Control': 'max-age=300' } } // Cache for 5 minutes
+        `https://b2c-49u4.onrender.com/api/v1/order/order?page=${page}&limit=${limit}`
       );
-      return response.data.orders || [];
+      if (!response.data || !Array.isArray(response.data.orders)) {
+        throw new Error('Invalid data format from server');
+      }
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || 'Failed to fetch orders');
+      console.error("Fetch error:", error);
+      return rejectWithValue(error.response?.data || error.message || 'Failed to fetch orders');
     }
   }
 );
 
-// Delete Order
 export const deleteOrder = createAsyncThunk(
   'orders/deleteOrder',
   async (id, { rejectWithValue }) => {
     try {
-      await axios.delete(`https://b2c-backend-eik4.onrender.com/api/v1/admin/order/delete/${id}`);
+      await axios.delete(
+        `https://b2c-backend-eik4.onrender.com/api/v1/admin/order/delete/${id}`
+      );
       return id;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Failed to delete order');
@@ -60,22 +55,19 @@ const ordersSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Orders
       .addCase(fetchOrders.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchOrders.fulfilled, (state, action) => {
         state.loading = false;
-        state.orders = action.payload;
-        state.lastFetched = Date.now(); // Update cache timestamp
+        state.orders = action.payload.orders || [];
+        state.totalCount = action.payload.totalCount || 0;
       })
       .addCase(fetchOrders.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Delete Order
       .addCase(deleteOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -83,6 +75,7 @@ const ordersSlice = createSlice({
       .addCase(deleteOrder.fulfilled, (state, action) => {
         state.loading = false;
         state.orders = state.orders.filter((order) => order.id !== action.payload);
+        state.totalCount -= 1;
       })
       .addCase(deleteOrder.rejected, (state, action) => {
         state.loading = false;
