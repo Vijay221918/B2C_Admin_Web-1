@@ -4,10 +4,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  clearSuccessMessage,
-  deleteOrder,
-  fetchOrders,
-  setSuccessMessage,
+    clearSuccessMessage,
+    deleteOrder,
+    fetchOrders,
+    setSuccessMessage,
 } from "../redux/ordersSlice.js";
 
 const Orders = () => {
@@ -169,7 +169,7 @@ const Orders = () => {
 
   return (
     <div className="bg-white p-6 shadow rounded mb-6 overflow-y-auto h-full scrollbar-thin scrollbar-thumb-gray-400">
-      <h3 className="text-lg font-semibold ml-4 mb-4">All Orders</h3>
+      <h3 className="text-lg font-semibold ml-4 mb-4">All orders</h3>
 
       <div className="mb-4 relative">
         <div className="flex items-center border ml-2 rounded-lg overflow-hidden shadow-sm">
